@@ -14,6 +14,16 @@ import {
   TrendingUp,
   AlertCircle,
   Phone,
+  X,
+  FileText,
+  Video,
+  BookOpen,
+  Plus,
+  DollarSign,
+  Target,
+  Trophy,
+  XCircle,
+  Briefcase,
 } from "lucide-react";
 import {
   BarChart,
@@ -23,9 +33,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  FunnelChart,
-  Funnel,
-  LabelList,
+  PieChart,
+  Pie,
   Cell,
 } from "recharts";
 import {
@@ -33,12 +42,43 @@ import {
   meetingsPipeline,
   conversionFunnel,
   outreachPerformance,
+  opportunities as initialOpportunities,
+  leads,
 } from "../data/mockData";
+
+const FOLLOW_UP_TYPES = [
+  { key: "email", label: "Follow-Up Email", icon: Mail, color: "#2980b9", desc: "Send a contextual follow-up email" },
+  { key: "linkedin", label: "LinkedIn Message", icon: ExternalLink, color: "#0077b5", desc: "Send a LinkedIn direct message" },
+  { key: "call", label: "Phone Call", icon: Phone, color: "#27ae60", desc: "Schedule or make a phone call" },
+  { key: "case-study", label: "Send Case Study", icon: FileText, color: "#9b59b6", desc: "Share a relevant customer case study" },
+  { key: "one-pager", label: "Send Product One-Pager", icon: BookOpen, color: "#e67e22", desc: "Share product overview document" },
+  { key: "demo", label: "Schedule Demo", icon: Video, color: "#e74c3c", desc: "Propose a product demo session" },
+  { key: "meeting", label: "Schedule Meeting", icon: Calendar, color: "#1a5276", desc: "Book a discovery / follow-up meeting" },
+];
+
+const STAGE_CONFIG = {
+  created: { label: "Created", color: "#3498db", bg: "#ebf5fb" },
+  negotiation: { label: "Negotiation", color: "#f39c12", bg: "#fef5e7" },
+  "closed-won": { label: "Closed Won", color: "#27ae60", bg: "#eafaf1" },
+  "closed-lost": { label: "Closed Lost", color: "#e74c3c", bg: "#fdedec" },
+};
 
 const SalesAction = () => {
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState("activity");
   const [activities, setActivities] = useState(salesActivities);
+  const [followUpModal, setFollowUpModal] = useState(null);
+  const [opportunities, setOpportunities] = useState(initialOpportunities);
+  const [showCreateOpp, setShowCreateOpp] = useState(false);
+  const [newOpp, setNewOpp] = useState({
+    company: "",
+    contact: "",
+    title: "",
+    value: "",
+    stage: "created",
+    source: "",
+    notes: "",
+  });
 
   const showToast = (msg) => {
     setToast(msg);
@@ -94,20 +134,61 @@ const SalesAction = () => {
     }
   };
 
-  const funnelData = conversionFunnel.map((item) => ({
-    ...item,
-    name: item.stage,
-    value: item.count || 0.5,
-  }));
+  // ─── Opportunity calculations ───
+  const oppStats = {
+    created: opportunities.filter((o) => o.stage === "created").length,
+    negotiation: opportunities.filter((o) => o.stage === "negotiation").length,
+    won: opportunities.filter((o) => o.stage === "closed-won").length,
+    lost: opportunities.filter((o) => o.stage === "closed-lost").length,
+    total: opportunities.length,
+  };
+
+  const predictedRevenue = opportunities
+    .filter((o) => o.stage !== "closed-lost")
+    .reduce((sum, o) => sum + (o.value * o.probability) / 100, 0);
+
+  const totalPipelineValue = opportunities
+    .filter((o) => o.stage === "created" || o.stage === "negotiation")
+    .reduce((sum, o) => sum + o.value, 0);
+
+  const wonRevenue = opportunities
+    .filter((o) => o.stage === "closed-won")
+    .reduce((sum, o) => sum + o.value, 0);
+
+  const handleFollowUp = (type, contact) => {
+    setFollowUpModal(null);
+    showToast(`${type.label} initiated for ${contact.contact} at ${contact.company}`);
+  };
+
+  const handleCreateOpportunity = () => {
+    if (!newOpp.company || !newOpp.value) return;
+    const opp = {
+      id: opportunities.length + 1,
+      ...newOpp,
+      value: parseFloat(newOpp.value),
+      probability: newOpp.stage === "created" ? 30 : newOpp.stage === "negotiation" ? 50 : 0,
+      createdAt: new Date().toISOString().split("T")[0],
+      closedAt: null,
+    };
+    setOpportunities([opp, ...opportunities]);
+    setShowCreateOpp(false);
+    setNewOpp({ company: "", contact: "", title: "", value: "", stage: "created", source: "", notes: "" });
+    showToast(`Opportunity created for ${opp.company}`);
+  };
+
+  const oppPieData = [
+    { name: "Created", value: oppStats.created, color: "#3498db" },
+    { name: "Negotiation", value: oppStats.negotiation, color: "#f39c12" },
+    { name: "Won", value: oppStats.won, color: "#27ae60" },
+    { name: "Lost", value: oppStats.lost, color: "#e74c3c" },
+  ].filter((d) => d.value > 0);
 
   return (
     <>
       <div className="top-bar">
         <div className="top-bar-left">
           <h1>Sales Action</h1>
-          <p>
-            Outreach tracking, meeting pipeline, and conversion funnel
-          </p>
+          <p>Outreach tracking, pipeline, opportunities & revenue</p>
         </div>
         <div className="top-bar-right">
           <div className="sync-indicator">
@@ -121,7 +202,7 @@ const SalesAction = () => {
 
       <div className="page-content">
         {/* Stats */}
-        <div className="stats-grid">
+        <div className="stats-grid" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
           <div className="stat-card">
             <div className="stat-card-header">
               <div className="stat-icon blue">
@@ -151,6 +232,22 @@ const SalesAction = () => {
           </div>
           <div className="stat-card">
             <div className="stat-card-header">
+              <div className="stat-icon" style={{ background: "#f0e6ff", color: "#9b59b6" }}>
+                <DollarSign size={20} />
+              </div>
+            </div>
+            <div className="stat-value" style={{ fontSize: 22 }}>
+              {"\u20AC"}{Math.round(predictedRevenue / 1000)}K
+            </div>
+            <div className="stat-label">
+              Predicted Revenue
+              <div style={{ fontSize: 10, color: "#9b59b6" }}>
+                Weighted pipeline
+              </div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-header">
               <div className="stat-icon red">
                 <Calendar size={20} />
               </div>
@@ -159,27 +256,29 @@ const SalesAction = () => {
             <div className="stat-label">
               Meetings Booked
               <div style={{ fontSize: 10, color: "#e74c3c" }}>
-                Target: ≥1
+                Target: {"\u2265"}1
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="tab-nav">
+        {/* Tabs — styled as proper clickable tabs */}
+        <div className="sa-tab-bar">
           {[
-            { key: "activity", label: "Outreach Activity" },
-            { key: "pipeline", label: "Meeting Pipeline" },
-            { key: "funnel", label: "Conversion Funnel" },
-            { key: "performance", label: "Performance Metrics" },
+            { key: "activity", label: "Outreach Activity", icon: Send },
+            { key: "pipeline", label: "Meeting Pipeline", icon: Users },
+            { key: "opportunities", label: "Opportunities", icon: Briefcase },
+            { key: "funnel", label: "Conversion Funnel", icon: TrendingUp },
+            { key: "performance", label: "Performance Metrics", icon: Target },
           ].map((tab) => (
-            <div
+            <button
               key={tab.key}
-              className={`tab-item ${activeTab === tab.key ? "active" : ""}`}
+              className={`sa-tab-btn ${activeTab === tab.key ? "active" : ""}`}
               onClick={() => setActiveTab(tab.key)}
             >
+              <tab.icon size={15} />
               {tab.label}
-            </div>
+            </button>
           ))}
         </div>
 
@@ -251,33 +350,27 @@ const SalesAction = () => {
                               hour: "2-digit",
                               minute: "2-digit",
                             })
-                          : "—"}
+                          : "\u2014"}
                       </td>
                       <td style={{ fontSize: 13 }}>
                         {act.repliedAt ? (
                           <span className="badge green">Yes</span>
                         ) : (
-                          "—"
+                          "\u2014"
                         )}
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: 4 }}>
                           <button
                             className="btn btn-sm btn-outline"
-                            onClick={() =>
-                              showToast(`Scheduling follow-up for ${act.contact}`)
-                            }
+                            onClick={() => setFollowUpModal(act)}
                           >
                             Follow-Up
                           </button>
                           {act.status === "opened" && !act.repliedAt && (
                             <button
                               className="btn btn-sm btn-primary"
-                              onClick={() =>
-                                showToast(
-                                  `Sending follow-up to ${act.contact}...`
-                                )
-                              }
+                              onClick={() => setFollowUpModal(act)}
                             >
                               <Send size={10} />
                             </button>
@@ -476,6 +569,194 @@ const SalesAction = () => {
           </>
         )}
 
+        {/* ── Tab: Opportunities ── */}
+        {activeTab === "opportunities" && (
+          <>
+            {/* Opportunity Summary Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+              <div className="stat-card" style={{ borderLeft: "4px solid #3498db" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div className="stat-icon blue"><Briefcase size={18} /></div>
+                  <span style={{ fontSize: 12, color: "#7f8c8d", textTransform: "uppercase", letterSpacing: 1 }}>Created</span>
+                </div>
+                <div className="stat-value">{oppStats.created + oppStats.negotiation}</div>
+                <div className="stat-label">Open opportunities</div>
+              </div>
+              <div className="stat-card" style={{ borderLeft: "4px solid #27ae60" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div className="stat-icon green"><Trophy size={18} /></div>
+                  <span style={{ fontSize: 12, color: "#7f8c8d", textTransform: "uppercase", letterSpacing: 1 }}>Won</span>
+                </div>
+                <div className="stat-value">{oppStats.won}</div>
+                <div className="stat-label">{"\u20AC"}{wonRevenue.toLocaleString()} revenue</div>
+              </div>
+              <div className="stat-card" style={{ borderLeft: "4px solid #e74c3c" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div className="stat-icon red"><XCircle size={18} /></div>
+                  <span style={{ fontSize: 12, color: "#7f8c8d", textTransform: "uppercase", letterSpacing: 1 }}>Lost</span>
+                </div>
+                <div className="stat-value">{oppStats.lost}</div>
+                <div className="stat-label">Closed lost</div>
+              </div>
+              <div className="stat-card" style={{ borderLeft: "4px solid #9b59b6" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div className="stat-icon" style={{ background: "#f0e6ff", color: "#9b59b6" }}><TrendingUp size={18} /></div>
+                  <span style={{ fontSize: 12, color: "#7f8c8d", textTransform: "uppercase", letterSpacing: 1 }}>Predicted</span>
+                </div>
+                <div className="stat-value" style={{ fontSize: 24 }}>{"\u20AC"}{Math.round(predictedRevenue).toLocaleString()}</div>
+                <div className="stat-label">Weighted revenue forecast</div>
+              </div>
+            </div>
+
+            <div className="grid-2">
+              {/* Opportunity List */}
+              <div className="card">
+                <div className="card-header">
+                  <h3>All Opportunities</h3>
+                  <button className="btn btn-sm btn-success" onClick={() => setShowCreateOpp(true)}>
+                    <Plus size={14} /> Create Opportunity
+                  </button>
+                </div>
+                <div className="card-body" style={{ padding: 0 }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Company</th>
+                        <th>Contact</th>
+                        <th>Value</th>
+                        <th>Stage</th>
+                        <th>Probability</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {opportunities.map((opp) => {
+                        const cfg = STAGE_CONFIG[opp.stage];
+                        return (
+                          <tr key={opp.id}>
+                            <td style={{ fontWeight: 600 }}>{opp.company}</td>
+                            <td>
+                              <div>{opp.contact}</div>
+                              <div style={{ fontSize: 11, color: "#7f8c8d" }}>{opp.title}</div>
+                            </td>
+                            <td style={{ fontWeight: 700 }}>{"\u20AC"}{opp.value.toLocaleString()}</td>
+                            <td>
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  padding: "4px 10px",
+                                  borderRadius: 6,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  background: cfg.bg,
+                                  color: cfg.color,
+                                }}
+                              >
+                                {cfg.label}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{ flex: 1, height: 6, background: "#ecf0f1", borderRadius: 3, overflow: "hidden" }}>
+                                  <div
+                                    style={{
+                                      height: "100%",
+                                      width: `${opp.probability}%`,
+                                      background: opp.probability >= 60 ? "#27ae60" : opp.probability >= 30 ? "#f39c12" : "#e74c3c",
+                                      borderRadius: 3,
+                                    }}
+                                  />
+                                </div>
+                                <span style={{ fontSize: 12, fontWeight: 600, minWidth: 32 }}>{opp.probability}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Pipeline Revenue & Chart */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                <div className="card">
+                  <div className="card-header">
+                    <h3>Pipeline Revenue Breakdown</h3>
+                  </div>
+                  <div className="card-body">
+                    <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+                      <div style={{ width: 180, height: 180 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={oppPieData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={50}
+                              outerRadius={80}
+                              dataKey="value"
+                              paddingAngle={3}
+                            >
+                              {oppPieData.map((entry, i) => (
+                                <Cell key={i} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        {oppPieData.map((d) => (
+                          <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: 2, background: d.color }} />
+                            <span style={{ fontSize: 13, flex: 1 }}>{d.name}</span>
+                            <span style={{ fontWeight: 700, fontSize: 14 }}>{d.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-header">
+                    <h3>Revenue Summary</h3>
+                  </div>
+                  <div className="card-body">
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 14 }}>
+                        <span>Total Pipeline Value</span>
+                        <span style={{ fontWeight: 700 }}>{"\u20AC"}{totalPipelineValue.toLocaleString()}</span>
+                      </div>
+                      <div style={{ height: 8, background: "#ecf0f1", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: "100%", background: "linear-gradient(90deg, #3498db, #2980b9)", borderRadius: 4 }} />
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 14 }}>
+                        <span>Weighted Predicted Revenue</span>
+                        <span style={{ fontWeight: 700, color: "#9b59b6" }}>{"\u20AC"}{Math.round(predictedRevenue).toLocaleString()}</span>
+                      </div>
+                      <div style={{ height: 8, background: "#ecf0f1", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.round((predictedRevenue / totalPipelineValue) * 100)}%`, background: "linear-gradient(90deg, #9b59b6, #8e44ad)", borderRadius: 4 }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 14 }}>
+                        <span>Revenue Won (Closed)</span>
+                        <span style={{ fontWeight: 700, color: "#27ae60" }}>{"\u20AC"}{wonRevenue.toLocaleString()}</span>
+                      </div>
+                      <div style={{ height: 8, background: "#ecf0f1", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.round((wonRevenue / (totalPipelineValue + wonRevenue)) * 100)}%`, background: "linear-gradient(90deg, #27ae60, #2ecc71)", borderRadius: 4 }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* ── Tab: Conversion Funnel ── */}
         {activeTab === "funnel" && (
           <div className="grid-2">
@@ -579,7 +860,7 @@ const SalesAction = () => {
                       ~20%)
                     </li>
                     <li>
-                      100% of outreach uses AI-suggested context (target: ≥50%)
+                      100% of outreach uses AI-suggested context (target: {"\u2265"}50%)
                     </li>
                     <li>
                       Signal detection exceeds target: 28/week vs 20/week goal
@@ -614,7 +895,7 @@ const SalesAction = () => {
                       emails
                     </li>
                     <li>
-                      0 meetings booked yet (target: ≥1 by Week 10) — 6 weeks
+                      0 meetings booked yet (target: {"\u2265"}1 by Week 10) — 6 weeks
                       remaining
                     </li>
                     <li>
@@ -696,7 +977,7 @@ const SalesAction = () => {
                                   size={12}
                                   style={{ marginRight: 4 }}
                                 />
-                                Target: ≥1
+                                Target: {"\u2265"}1
                               </span>
                             ) : m.metric === "Open Rate" ? (
                               <span className="badge green">Excellent</span>
@@ -804,7 +1085,7 @@ const SalesAction = () => {
                           AI-suggested context used in outreach
                         </span>
                         <span style={{ fontWeight: 600, color: "#27ae60" }}>
-                          100% (target: ≥50%)
+                          100% (target: {"\u2265"}50%)
                         </span>
                       </div>
                       <div className="progress-bar">
@@ -827,7 +1108,7 @@ const SalesAction = () => {
                           Meetings booked from POC leads
                         </span>
                         <span style={{ fontWeight: 600, color: "#e74c3c" }}>
-                          0 / 1 (target: ≥1)
+                          0 / 1 (target: {"\u2265"}1)
                         </span>
                       </div>
                       <div className="progress-bar">
@@ -867,6 +1148,150 @@ const SalesAction = () => {
           </>
         )}
       </div>
+
+      {/* ═══ Follow-Up Modal ═══ */}
+      {followUpModal && (
+        <div className="sa-modal-overlay" onClick={() => setFollowUpModal(null)}>
+          <div className="sa-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sa-modal-header">
+              <div>
+                <h3 style={{ margin: 0, fontSize: 17 }}>Choose Follow-Up Type</h3>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#7f8c8d" }}>
+                  {followUpModal.contact} at {followUpModal.company}
+                </p>
+              </div>
+              <button className="sa-modal-close" onClick={() => setFollowUpModal(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="sa-modal-body">
+              {FOLLOW_UP_TYPES.map((type) => (
+                <button
+                  key={type.key}
+                  className="sa-followup-option"
+                  onClick={() => handleFollowUp(type, followUpModal)}
+                >
+                  <div
+                    className="sa-followup-icon"
+                    style={{ background: type.color + "18", color: type.color }}
+                  >
+                    <type.icon size={20} />
+                  </div>
+                  <div style={{ flex: 1, textAlign: "left" }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{type.label}</div>
+                    <div style={{ fontSize: 12, color: "#7f8c8d" }}>{type.desc}</div>
+                  </div>
+                  <ArrowRight size={16} style={{ color: "#bdc3c7" }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Create Opportunity Modal ═══ */}
+      {showCreateOpp && (
+        <div className="sa-modal-overlay" onClick={() => setShowCreateOpp(false)}>
+          <div className="sa-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+            <div className="sa-modal-header">
+              <h3 style={{ margin: 0, fontSize: 17 }}>Create Opportunity</h3>
+              <button className="sa-modal-close" onClick={() => setShowCreateOpp(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="sa-modal-body">
+              <div className="sa-form-grid">
+                <div className="sa-form-group">
+                  <label>Company *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Acme Field Services GmbH"
+                    value={newOpp.company}
+                    onChange={(e) => setNewOpp({ ...newOpp, company: e.target.value })}
+                  />
+                </div>
+                <div className="sa-form-group">
+                  <label>Contact Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. John Smith"
+                    value={newOpp.contact}
+                    onChange={(e) => setNewOpp({ ...newOpp, contact: e.target.value })}
+                  />
+                </div>
+                <div className="sa-form-group">
+                  <label>Title / Role</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. VP Operations"
+                    value={newOpp.title}
+                    onChange={(e) => setNewOpp({ ...newOpp, title: e.target.value })}
+                  />
+                </div>
+                <div className="sa-form-group">
+                  <label>Deal Value ({"\u20AC"}) *</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 50000"
+                    value={newOpp.value}
+                    onChange={(e) => setNewOpp({ ...newOpp, value: e.target.value })}
+                  />
+                </div>
+                <div className="sa-form-group">
+                  <label>Stage</label>
+                  <select
+                    value={newOpp.stage}
+                    onChange={(e) => setNewOpp({ ...newOpp, stage: e.target.value })}
+                  >
+                    <option value="created">Created</option>
+                    <option value="negotiation">Negotiation</option>
+                  </select>
+                </div>
+                <div className="sa-form-group">
+                  <label>Source</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. AI Signal — LinkedIn Post"
+                    value={newOpp.source}
+                    onChange={(e) => setNewOpp({ ...newOpp, source: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="sa-form-group" style={{ marginTop: 12 }}>
+                <label>Notes</label>
+                <textarea
+                  rows={3}
+                  placeholder="Additional context about this opportunity..."
+                  value={newOpp.notes}
+                  onChange={(e) => setNewOpp({ ...newOpp, notes: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    border: "1px solid #e0e6ed",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+                <button className="btn btn-outline" onClick={() => setShowCreateOpp(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-success"
+                  onClick={handleCreateOpportunity}
+                  disabled={!newOpp.company || !newOpp.value}
+                  style={{ opacity: !newOpp.company || !newOpp.value ? 0.5 : 1 }}
+                >
+                  <Plus size={14} /> Create Opportunity
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="toast">

@@ -828,3 +828,218 @@ body {
   width: 100%;
   height: 280px;
 }
+
+/* ─── Generic Tab Nav (used in Signal Monitor, Enrich, HubSpot, Outreach) ─── */
+.tab-nav {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+  background: var(--card-bg);
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-light);
+  transition: var(--transition);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tab-item:hover {
+  background: #f0f4f8;
+  color: var(--text);
+}
+
+.tab-item.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(26, 82, 118, 0.3);
+}
+
+/* ─── Sales Action: Tab Bar ─── */
+.sa-tab-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+  background: var(--card-bg);
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.sa-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-light);
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.sa-tab-btn:hover {
+  background: #f0f4f8;
+  color: var(--text);
+}
+
+.sa-tab-btn.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(26, 82, 118, 0.3);
+}
+
+/* ─── Sales Action: Modal ─── */
+.sa-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sa-modal {
+  background: white;
+  border-radius: 14px;
+  width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  animation: modalSlideUp 0.25s ease;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sa-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sa-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.sa-modal-close:hover {
+  background: #f0f0f0;
+  color: var(--text);
+}
+
+.sa-modal-body {
+  padding: 20px 24px;
+}
+
+/* ─── Follow-Up Option Buttons ─── */
+.sa-followup-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: 8px;
+}
+
+.sa-followup-option:hover {
+  border-color: var(--primary-light);
+  background: #f8fbff;
+  box-shadow: 0 2px 8px rgba(41, 128, 185, 0.1);
+  transform: translateX(4px);
+}
+
+.sa-followup-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ─── Form Styles ─── */
+.sa-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.sa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sa-form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sa-form-group input,
+.sa-form-group select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text);
+  transition: var(--transition);
+  outline: none;
+}
+
+.sa-form-group input:focus,
+.sa-form-group select:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.1);
+}
