@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/microbizz-sales-poc/static/css/main.98a46dce.css",
-    "main.js": "/microbizz-sales-poc/static/js/main.a55e1d8c.js",
+    "main.js": "/microbizz-sales-poc/static/js/main.43c3db0a.js",
     "static/js/453.f973edc3.chunk.js": "/microbizz-sales-poc/static/js/453.f973edc3.chunk.js",
     "index.html": "/microbizz-sales-poc/index.html",
     "main.98a46dce.css.map": "/microbizz-sales-poc/static/css/main.98a46dce.css.map",
-    "main.a55e1d8c.js.map": "/microbizz-sales-poc/static/js/main.a55e1d8c.js.map",
+    "main.43c3db0a.js.map": "/microbizz-sales-poc/static/js/main.43c3db0a.js.map",
     "453.f973edc3.chunk.js.map": "/microbizz-sales-poc/static/js/453.f973edc3.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.98a46dce.css",
-    "static/js/main.a55e1d8c.js"
+    "static/js/main.43c3db0a.js"
   ]
 }
