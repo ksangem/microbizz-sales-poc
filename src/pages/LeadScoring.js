@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
   Filter,
@@ -6,6 +7,8 @@ import {
   Shield,
   TrendingUp,
   Users,
+  Info,
+  Settings,
 } from "lucide-react";
 import {
   RadarChart,
@@ -19,7 +22,56 @@ import {
 import { leads } from "../data/mockData";
 import LeadDetailPanel from "../components/LeadDetailPanel";
 
+/* G-01: Inline InfoTooltip component */
+const InfoTooltip = ({ text }) => {
+  const [show, setShow] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 6, cursor: "help" }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      <Info size={15} style={{ color: "#7f8c8d" }} />
+      {show && (
+        <span
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#2c3e50",
+            color: "#fff",
+            fontSize: 12,
+            padding: "8px 12px",
+            borderRadius: 6,
+            whiteSpace: "nowrap",
+            maxWidth: 340,
+            whiteSpace: "normal",
+            zIndex: 1000,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            lineHeight: 1.4,
+          }}
+        >
+          {text}
+        </span>
+      )}
+    </span>
+  );
+};
+
+/* SC-02: Helper to determine recommended action based on score */
+const getRecommendedAction = (score) => {
+  if (score >= 80) {
+    return { label: "Trigger outreach now", color: "green" };
+  } else if (score >= 50) {
+    return { label: "Monitor \u2014 re-enrich in 7 days", color: "orange" };
+  } else {
+    return { label: "Low priority", color: "gray" };
+  }
+};
+
 const LeadScoring = () => {
+  const navigate = useNavigate();
   const [selectedLead, setSelectedLead] = useState(null);
   const [sortBy, setSortBy] = useState("overallScore");
   const [filterCountry, setFilterCountry] = useState("all");
@@ -108,6 +160,25 @@ const LeadScoring = () => {
           </div>
         </div>
 
+        {/* SC-01: Info callout banner */}
+        <div
+          style={{
+            background: "#ebf5fb",
+            border: "1px solid #aed6f1",
+            borderRadius: 8,
+            padding: "12px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 16,
+            fontSize: 14,
+            color: "#2c3e50",
+          }}
+        >
+          <Info size={18} style={{ color: "#2980b9", flexShrink: 0 }} />
+          Scoring model is configured once and applied automatically to all leads. No manual scoring required per lead.
+        </div>
+
         {/* Filters */}
         <div className="filter-bar">
           <Filter size={16} style={{ color: "#7f8c8d" }} />
@@ -131,13 +202,25 @@ const LeadScoring = () => {
               </option>
             ))}
           </select>
+          {/* SC-03: Configure Scoring Model button */}
+          <button
+            className="btn btn-primary"
+            style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}
+            onClick={() => navigate("/enrich?tab=scoring")}
+          >
+            <Settings size={14} />
+            Configure Scoring Model
+          </button>
         </div>
 
         <div style={{ display: "flex", gap: 24 }}>
           {/* Lead Table */}
           <div className="card" style={{ flex: 2 }}>
             <div className="card-header">
-              <h3>Ranked Leads</h3>
+              <h3 style={{ display: "flex", alignItems: "center" }}>
+                Ranked Leads
+                <InfoTooltip text="All leads ranked by AI scoring. Click any lead to view their detailed scoring profile and signal history." />
+              </h3>
               <span className="badge green">Updated Daily</span>
             </div>
             <div className="card-body" style={{ padding: 0 }}>
@@ -151,98 +234,111 @@ const LeadScoring = () => {
                     <th>ICP Fit</th>
                     <th>Intent</th>
                     <th>Overall</th>
+                    <th>Recommended Action</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedLeads.map((lead, index) => (
-                    <tr
-                      key={lead.id}
-                      onClick={() => setSelectedLead(lead)}
-                      style={{
-                        background:
-                          selectedLead?.id === lead.id
-                            ? "#f0f7ff"
-                            : "transparent",
-                      }}
-                    >
-                      <td style={{ fontWeight: 700, color: "#7f8c8d" }}>
-                        {index + 1}
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{lead.contact}</div>
-                        <div style={{ fontSize: 12, color: "#7f8c8d" }}>
-                          {lead.title}
-                        </div>
-                      </td>
-                      <td>{lead.company}</td>
-                      <td style={{ fontSize: 13 }}>{lead.country}</td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            lead.icpFit >= 85
-                              ? "green"
-                              : lead.icpFit >= 70
-                              ? "orange"
-                              : "red"
-                          }`}
-                        >
-                          {lead.icpFit}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            lead.intentScore >= 85
-                              ? "green"
-                              : lead.intentScore >= 70
-                              ? "orange"
-                              : "red"
-                          }`}
-                        >
-                          {lead.intentScore}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="score-bar-container">
-                          <div className="score-bar" style={{ width: 50 }}>
-                            <div
-                              className={`score-bar-fill ${
+                  {sortedLeads.map((lead, index) => {
+                    const action = getRecommendedAction(lead.overallScore);
+                    return (
+                      <tr
+                        key={lead.id}
+                        onClick={() => setSelectedLead(lead)}
+                        style={{
+                          background:
+                            selectedLead?.id === lead.id
+                              ? "#f0f7ff"
+                              : "transparent",
+                        }}
+                      >
+                        <td style={{ fontWeight: 700, color: "#7f8c8d" }}>
+                          {index + 1}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600 }}>{lead.contact}</div>
+                          <div style={{ fontSize: 12, color: "#7f8c8d" }}>
+                            {lead.title}
+                          </div>
+                        </td>
+                        <td>{lead.company}</td>
+                        <td style={{ fontSize: 13 }}>{lead.country}</td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              lead.icpFit >= 85
+                                ? "green"
+                                : lead.icpFit >= 70
+                                ? "orange"
+                                : "red"
+                            }`}
+                          >
+                            {lead.icpFit}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              lead.intentScore >= 85
+                                ? "green"
+                                : lead.intentScore >= 70
+                                ? "orange"
+                                : "red"
+                            }`}
+                          >
+                            {lead.intentScore}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="score-bar-container">
+                            <div className="score-bar" style={{ width: 50 }}>
+                              <div
+                                className={`score-bar-fill ${
+                                  lead.overallScore >= 80
+                                    ? "high"
+                                    : lead.overallScore >= 60
+                                    ? "medium"
+                                    : "low"
+                                }`}
+                                style={{
+                                  width: `${lead.overallScore}%`,
+                                }}
+                              ></div>
+                            </div>
+                            <span
+                              className={`score-value ${
                                 lead.overallScore >= 80
                                   ? "high"
                                   : lead.overallScore >= 60
                                   ? "medium"
                                   : "low"
                               }`}
-                              style={{
-                                width: `${lead.overallScore}%`,
-                              }}
-                            ></div>
+                            >
+                              {lead.overallScore}
+                            </span>
                           </div>
+                        </td>
+                        {/* SC-02: Recommended Action column */}
+                        <td>
                           <span
-                            className={`score-value ${
-                              lead.overallScore >= 80
-                                ? "high"
-                                : lead.overallScore >= 60
-                                ? "medium"
-                                : "low"
+                            className={`badge ${action.color}`}
+                            style={{ fontSize: 11, whiteSpace: "nowrap" }}
+                          >
+                            {action.label}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              lead.verified ? "green" : "orange"
                             }`}
                           >
-                            {lead.overallScore}
+                            {lead.verified ? "Verified" : "Pending"}
                           </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            lead.verified ? "green" : "orange"
-                          }`}
-                        >
-                          {lead.verified ? "Verified" : "Pending"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -251,7 +347,10 @@ const LeadScoring = () => {
           {/* Radar Chart for selected lead */}
           <div className="card" style={{ flex: 1, minWidth: 320 }}>
             <div className="card-header">
-              <h3>Lead Profile</h3>
+              <h3 style={{ display: "flex", alignItems: "center" }}>
+                Lead Profile
+                <InfoTooltip text="Detailed breakdown of the selected lead's scoring across ICP fit, intent, engagement, and verification metrics." />
+              </h3>
             </div>
             <div className="card-body">
               {selectedLead ? (

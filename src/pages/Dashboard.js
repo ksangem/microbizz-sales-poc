@@ -12,6 +12,7 @@ import {
   Send,
   ArrowRight,
   ExternalLink,
+  Info,
 } from "lucide-react";
 import {
   BarChart,
@@ -35,6 +36,43 @@ import {
 import LeadDetailPanel from "../components/LeadDetailPanel";
 
 const COLORS = ["#2980b9", "#3498db", "#f39c12", "#e67e22", "#95a5a6"];
+
+/* G-01: Inline InfoTooltip component */
+const InfoTooltip = ({ text }) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 8, cursor: "help" }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <Info size={15} style={{ color: "#95a5a6" }} />
+      {visible && (
+        <span
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#2c3e50",
+            color: "#fff",
+            fontSize: 12,
+            lineHeight: 1.4,
+            padding: "8px 12px",
+            borderRadius: 6,
+            whiteSpace: "normal",
+            width: 260,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            zIndex: 1000,
+            pointerEvents: "none",
+          }}
+        >
+          {text}
+        </span>
+      )}
+    </span>
+  );
+};
 
 const Dashboard = () => {
   const [selectedLead, setSelectedLead] = useState(null);
@@ -61,13 +99,10 @@ const Dashboard = () => {
       </div>
 
       <div className="page-content">
-        {/* Workflow Overview — All steps clickable */}
+        {/* D-01: Workflow Overview — removed "Click any step" prose */}
         <div className="card" style={{ marginBottom: 28 }}>
           <div className="card-header">
             <h3>POC Workflow Pipeline</h3>
-            <span style={{ fontSize: 12, color: "#7f8c8d" }}>
-              Click any step to open that module
-            </span>
           </div>
           <div className="card-body">
             <div className="workflow-diagram">
@@ -152,7 +187,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid — All clickable */}
+        {/* Stats Grid — D-02: Added "View →" navigation hint */}
         <div className="stats-grid">
           <div
             className="stat-card"
@@ -170,6 +205,9 @@ const Dashboard = () => {
             <div className="stat-label">Signals This Week</div>
             <div className="stat-change up">
               <ArrowUp size={12} /> +27% vs last week
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "#3498db", fontWeight: 500 }}>
+              Go to Signal Monitor →
             </div>
           </div>
 
@@ -190,6 +228,9 @@ const Dashboard = () => {
             <div className="stat-change up">
               <ArrowUp size={12} /> 87.5% enrichment rate
             </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "#27ae60", fontWeight: 500 }}>
+              Go to Enrich & Score →
+            </div>
           </div>
 
           <div
@@ -208,6 +249,9 @@ const Dashboard = () => {
             <div className="stat-label">Top Lead Score</div>
             <div className="stat-change up">
               <ArrowUp size={12} /> FranceTech SARL
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "#e67e22", fontWeight: 500 }}>
+              Go to HubSpot Dashboard →
             </div>
           </div>
 
@@ -228,83 +272,13 @@ const Dashboard = () => {
             <div className="stat-change up">
               <ArrowUp size={12} /> 3 ready to send
             </div>
-          </div>
-        </div>
-
-        {/* Charts Row */}
-        <div className="grid-2">
-          <div className="card" style={{ cursor: "pointer" }} onClick={() => navigate("/tracker")} title="View POC Tracker">
-            <div className="card-header">
-              <h3>Weekly Progress</h3>
-              <ArrowRight size={14} style={{ color: "#bdc3c7" }} />
-            </div>
-            <div className="card-body">
-              <div className="chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyMetrics}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ecf0f1" />
-                    <XAxis dataKey="week" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar
-                      dataKey="signals"
-                      fill="#3498db"
-                      name="Signals"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="enriched"
-                      fill="#9b59b6"
-                      name="Enriched"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="outreach"
-                      fill="#27ae60"
-                      name="Outreach"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          <div className="card" style={{ cursor: "pointer" }} onClick={() => navigate("/signals")} title="View Signal Sources">
-            <div className="card-header">
-              <h3>Signal Sources</h3>
-              <ArrowRight size={14} style={{ color: "#bdc3c7" }} />
-            </div>
-            <div className="card-body">
-              <div className="chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={signalSourceBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
-                      {signalSourceBreakdown.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "#e74c3c", fontWeight: 500 }}>
+              Go to Sales Action →
             </div>
           </div>
         </div>
 
-        {/* Recent Signals & Top Leads */}
+        {/* D-03: Recent Signals & Top Leads moved ABOVE charts */}
         <div className="grid-2">
           <div className="card">
             <div
@@ -313,7 +287,10 @@ const Dashboard = () => {
               onClick={() => navigate("/signals")}
               title="View all signals"
             >
-              <h3>Recent Signals</h3>
+              <h3 style={{ display: "flex", alignItems: "center" }}>
+                Recent Signals
+                <InfoTooltip text="New intent signals detected from LinkedIn, forums, and job postings that need your review." />
+              </h3>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="badge blue">Last 48h</span>
                 <button className="btn btn-sm btn-outline" onClick={(e) => { e.stopPropagation(); navigate("/signals"); }}>
@@ -367,7 +344,10 @@ const Dashboard = () => {
               onClick={() => navigate("/hubspot")}
               title="View HubSpot Dashboard"
             >
-              <h3>Top Ranked Leads</h3>
+              <h3 style={{ display: "flex", alignItems: "center" }}>
+                Top Ranked Leads
+                <InfoTooltip text="Leads ranked by AI scoring based on ICP fit, intent signals, and engagement data." />
+              </h3>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="badge green">Updated Daily</span>
                 <button className="btn btn-sm btn-outline" onClick={(e) => { e.stopPropagation(); navigate("/hubspot"); }}>
@@ -436,85 +416,86 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Quick Access Module Cards */}
-        <div style={{ marginTop: 8 }}>
-          <h3 style={{ fontSize: 14, color: "#7f8c8d", marginBottom: 14, textTransform: "uppercase", letterSpacing: 1 }}>
-            Quick Access
-          </h3>
-          <div className="stats-grid">
-            <div
-              className="stat-card"
-              style={{ cursor: "pointer", borderTop: "3px solid #3498db" }}
-              onClick={() => navigate("/outreach")}
-              title="Outreach Assist"
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Outreach Assist</div>
-                  <div style={{ fontSize: 12, color: "#7f8c8d" }}>AI-generated messages</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span className="nav-badge" style={{ background: "#27ae60" }}>3 ready</span>
-                  <ArrowRight size={16} style={{ color: "#bdc3c7" }} />
-                </div>
+        {/* Charts Row — now below the signals/leads tables */}
+        <div className="grid-2">
+          <div className="card" style={{ cursor: "pointer" }} onClick={() => navigate("/tracker")} title="View POC Tracker">
+            <div className="card-header">
+              <h3 style={{ display: "flex", alignItems: "center" }}>
+                Weekly Progress
+                <InfoTooltip text="Week-over-week trend of signals detected, leads enriched, and outreach sent." />
+              </h3>
+              <ArrowRight size={14} style={{ color: "#bdc3c7" }} />
+            </div>
+            <div className="card-body">
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyMetrics}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ecf0f1" />
+                    <XAxis dataKey="week" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar
+                      dataKey="signals"
+                      fill="#3498db"
+                      name="Signals"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="enriched"
+                      fill="#9b59b6"
+                      name="Enriched"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="outreach"
+                      fill="#27ae60"
+                      name="Outreach"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
+          </div>
 
-            <div
-              className="stat-card"
-              style={{ cursor: "pointer", borderTop: "3px solid #9b59b6" }}
-              onClick={() => navigate("/leads")}
-              title="Lead Scoring"
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Lead Scoring</div>
-                  <div style={{ fontSize: 12, color: "#7f8c8d" }}>Ranked lead list</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span className="nav-badge" style={{ background: "#27ae60" }}>8 leads</span>
-                  <ArrowRight size={16} style={{ color: "#bdc3c7" }} />
-                </div>
-              </div>
+          <div className="card" style={{ cursor: "pointer" }} onClick={() => navigate("/signals")} title="View Signal Sources">
+            <div className="card-header">
+              <h3 style={{ display: "flex", alignItems: "center" }}>
+                Signal Sources
+                <InfoTooltip text="Breakdown of where intent signals are being detected across monitored channels." />
+              </h3>
+              <ArrowRight size={14} style={{ color: "#bdc3c7" }} />
             </div>
-
-            <div
-              className="stat-card"
-              style={{ cursor: "pointer", borderTop: "3px solid #27ae60" }}
-              onClick={() => navigate("/tracker")}
-              title="POC Tracker"
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>POC Tracker</div>
-                  <div style={{ fontSize: 12, color: "#7f8c8d" }}>Objectives & metrics</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span className="nav-badge" style={{ background: "#27ae60" }}>2 on track</span>
-                  <ArrowRight size={16} style={{ color: "#bdc3c7" }} />
-                </div>
-              </div>
-            </div>
-
-            <div
-              className="stat-card"
-              style={{ cursor: "pointer", borderTop: "3px solid #e67e22" }}
-              onClick={() => navigate("/settings")}
-              title="Settings"
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Settings</div>
-                  <div style={{ fontSize: 12, color: "#7f8c8d" }}>Integrations & config</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span className="badge green" style={{ fontSize: 10 }}>Connected</span>
-                  <ArrowRight size={16} style={{ color: "#bdc3c7" }} />
-                </div>
+            <div className="card-body">
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={signalSourceBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {signalSourceBreakdown.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
         </div>
+
+        {/* D-04: Quick Access section removed — redundant with stat cards and workflow */}
       </div>
 
       {selectedLead && (

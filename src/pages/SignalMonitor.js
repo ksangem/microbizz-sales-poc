@@ -17,6 +17,8 @@ import {
   Flag,
   ChevronDown,
   ChevronUp,
+  Info,
+  Trash2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -45,6 +47,158 @@ const signalTimeline = [
   { time: "3pm", count: 3 },
 ];
 
+// S-03: Per-source activity checklists
+const defaultSourceActivities = {
+  "LinkedIn Hashtags": [
+    { key: "posts", label: "Posts", enabled: true },
+    { key: "hashtags", label: "Hashtags", enabled: true },
+    { key: "engagements", label: "Engagements", enabled: true },
+  ],
+  "LinkedIn Company Pages": [
+    { key: "posts", label: "Posts", enabled: true },
+    { key: "companyUpdates", label: "Company Updates", enabled: true },
+    { key: "engagements", label: "Engagements", enabled: false },
+  ],
+  "LinkedIn Job Postings": [
+    { key: "jobPostings", label: "Job Postings", enabled: true },
+    { key: "companyUpdates", label: "Company Updates", enabled: false },
+  ],
+  "Industry Forums": [
+    { key: "blogPosts", label: "Blog Posts", enabled: true },
+    { key: "webinars", label: "Webinars", enabled: true },
+    { key: "eventRegistrations", label: "Event Registrations", enabled: false },
+  ],
+  "Company News / Blogs": [
+    { key: "pressReleases", label: "Press Releases", enabled: true },
+    { key: "productUpdates", label: "Product Updates", enabled: true },
+  ],
+  "LinkedIn Profile Activity": [
+    { key: "posts", label: "Posts", enabled: false },
+    { key: "engagements", label: "Engagements", enabled: false },
+  ],
+};
+
+// S-04: Per-source info tooltip data
+const sourceInfoData = {
+  "LinkedIn Hashtags": {
+    signals: "Captures posts and engagement on tracked hashtags relevant to your ICP.",
+    volume: "~15-25 signals/day",
+    gdpr: "Compliant - public data only",
+  },
+  "LinkedIn Company Pages": {
+    signals: "Monitors company page updates, posts, and follower engagement.",
+    volume: "~10-20 signals/day",
+    gdpr: "Compliant - public company data",
+  },
+  "LinkedIn Job Postings": {
+    signals: "Detects job postings that indicate buying intent (e.g., hiring for field service roles).",
+    volume: "~5-10 signals/day",
+    gdpr: "Compliant - public job listings",
+  },
+  "Industry Forums": {
+    signals: "Tracks discussions, blog posts, webinars, and event registrations on industry forums.",
+    volume: "~5-15 signals/day",
+    gdpr: "Compliant - public forum content",
+  },
+  "Company News / Blogs": {
+    signals: "Monitors press releases, product announcements, and company blog updates.",
+    volume: "~3-8 signals/day",
+    gdpr: "Compliant - public news sources",
+  },
+  "LinkedIn Profile Activity": {
+    signals: "Would track individual profile actions (posts, likes, comments).",
+    volume: "N/A - disabled",
+    gdpr: "Restricted - requires GDPR/DPIA review before activation",
+  },
+};
+
+// G-01: Info tooltip component
+const InfoTooltip = ({ text }) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 6, cursor: "help" }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <Info size={14} style={{ color: "#7f8c8d" }} />
+      {visible && (
+        <span
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#2c3e50",
+            color: "#fff",
+            padding: "10px 14px",
+            borderRadius: 8,
+            fontSize: 12,
+            lineHeight: 1.5,
+            width: 300,
+            zIndex: 1000,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            pointerEvents: "none",
+            whiteSpace: "normal",
+          }}
+        >
+          {text}
+        </span>
+      )}
+    </span>
+  );
+};
+
+// S-04: Source info tooltip component
+const SourceInfoTooltip = ({ source }) => {
+  const [visible, setVisible] = useState(false);
+  const info = sourceInfoData[source];
+  if (!info) return null;
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 6, cursor: "help" }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <span style={{ fontSize: 14, color: "#7f8c8d" }}>&#9432;</span>
+      {visible && (
+        <span
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#2c3e50",
+            color: "#fff",
+            padding: "12px 16px",
+            borderRadius: 8,
+            fontSize: 12,
+            lineHeight: 1.6,
+            width: 320,
+            zIndex: 1000,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            pointerEvents: "none",
+            whiteSpace: "normal",
+          }}
+        >
+          <div style={{ marginBottom: 6 }}>
+            <strong>Signals captured:</strong> {info.signals}
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <strong>Typical volume:</strong> {info.volume}
+          </div>
+          <div>
+            <strong>GDPR status:</strong>{" "}
+            <span style={{ color: info.gdpr.startsWith("Compliant") ? "#2ecc71" : "#e74c3c" }}>
+              {info.gdpr}
+            </span>
+          </div>
+        </span>
+      )}
+    </span>
+  );
+};
+
 const SignalMonitor = () => {
   const [filter, setFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
@@ -55,6 +209,15 @@ const SignalMonitor = () => {
   const [newKeyword, setNewKeyword] = useState("");
   const [sources, setSources] = useState(signalSourceConfig);
   const [expandedSignal, setExpandedSignal] = useState(null);
+
+  // S-01: Add Channel modal state
+  const [showAddChannel, setShowAddChannel] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [newChannelType, setNewChannelType] = useState("custom");
+
+  // S-03: Expanded source rows & activity state
+  const [expandedSource, setExpandedSource] = useState(null);
+  const [sourceActivities, setSourceActivities] = useState(defaultSourceActivities);
 
   const filteredSignals = signalEvents.filter((s) => {
     if (filter !== "all" && s.status !== filter) return false;
@@ -115,6 +278,65 @@ const SignalMonitor = () => {
     );
   };
 
+  // S-01: Add a new channel
+  const addChannel = () => {
+    if (newChannelName.trim()) {
+      const newSource = {
+        id: sources.length + 1,
+        source: newChannelName.trim(),
+        status: "paused",
+        monitored: 0,
+        signals: 0,
+        lastCheck: "Never",
+      };
+      setSources((prev) => [...prev, newSource]);
+      // Add default activities for custom source
+      setSourceActivities((prev) => ({
+        ...prev,
+        [newChannelName.trim()]: [
+          { key: "general", label: "General Monitoring", enabled: true },
+        ],
+      }));
+      setNewChannelName("");
+      setNewChannelType("custom");
+      setShowAddChannel(false);
+      showToast(`Channel "${newSource.source}" added`);
+    }
+  };
+
+  // S-01: Remove a channel
+  const removeSource = (id) => {
+    const src = sources.find((s) => s.id === id);
+    setSources((prev) => prev.filter((s) => s.id !== id));
+    if (src) {
+      showToast(`"${src.source}" removed from sources`);
+    }
+  };
+
+  // S-03: Toggle an activity within a source
+  const toggleActivity = (sourceName, activityKey) => {
+    setSourceActivities((prev) => ({
+      ...prev,
+      [sourceName]: (prev[sourceName] || []).map((a) =>
+        a.key === activityKey ? { ...a, enabled: !a.enabled } : a
+      ),
+    }));
+  };
+
+  // S-02: Map status to new labels
+  const getSourceStatusBadge = (status) => {
+    switch (status) {
+      case "active":
+        return <span className="badge blue">Connected</span>;
+      case "paused":
+        return <span className="badge green">Available</span>;
+      case "disabled":
+        return <span className="badge gray">Inactive</span>;
+      default:
+        return <span className="badge gray">{status}</span>;
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "new":
@@ -138,13 +360,13 @@ const SignalMonitor = () => {
 
   const getTypeIcon = (type) => {
     switch (type) {
-      case "post": return "📝";
-      case "job_posting": return "💼";
-      case "company_activity": return "🏢";
-      case "engagement": return "👍";
-      case "content": return "📄";
-      case "event": return "📅";
-      default: return "📡";
+      case "post": return "\u{1F4DD}";
+      case "job_posting": return "\u{1F4BC}";
+      case "company_activity": return "\u{1F3E2}";
+      case "engagement": return "\u{1F44D}";
+      case "content": return "\u{1F4C4}";
+      case "event": return "\u{1F4C5}";
+      default: return "\u{1F4E1}";
     }
   };
 
@@ -157,7 +379,10 @@ const SignalMonitor = () => {
     <>
       <div className="top-bar">
         <div className="top-bar-left">
-          <h1>Signal Monitor</h1>
+          <h1>
+            Signal Monitor
+            <InfoTooltip text="Real-time monitoring of public intent signals to identify companies showing buying behavior." />
+          </h1>
           <p>
             Real-time intent signal detection — LinkedIn, hashtags, industry
             forums
@@ -191,7 +416,7 @@ const SignalMonitor = () => {
             <div className="stat-value">28</div>
             <div className="stat-label">Signals This Week</div>
             <div className="stat-change up">
-              <ArrowUp size={12} /> Target: ≥20 (Hit!)
+              <ArrowUp size={12} /> Target: &ge;20 (Hit!)
             </div>
           </div>
           <div className="stat-card">
@@ -247,13 +472,16 @@ const SignalMonitor = () => {
           ))}
         </div>
 
-        {/* ── Tab: Live Signal Feed ── */}
+        {/* -- Tab: Live Signal Feed -- */}
         {activeTab === "live-feed" && (
           <>
             {/* Signal Timeline Chart */}
             <div className="card" style={{ marginBottom: 24 }}>
               <div className="card-header">
-                <h3>Signal Activity Today</h3>
+                <h3>
+                  Signal Activity Today
+                  <InfoTooltip text="Hourly distribution of signals detected today across all monitored channels." />
+                </h3>
                 <span className="badge blue">{liveSignalFeed.length} signals</span>
               </div>
               <div className="card-body">
@@ -378,7 +606,7 @@ const SignalMonitor = () => {
           </>
         )}
 
-        {/* ── Tab: All Signals ── */}
+        {/* -- Tab: All Signals -- */}
         {activeTab === "all-signals" && (
           <>
             {/* Filters & Bulk Actions */}
@@ -600,20 +828,126 @@ const SignalMonitor = () => {
           </>
         )}
 
-        {/* ── Tab: Source Configuration ── */}
+        {/* -- Tab: Source Configuration -- */}
         {activeTab === "sources" && (
           <>
             <div className="card" style={{ marginBottom: 24 }}>
               <div className="card-header">
-                <h3>Signal Source Configuration</h3>
-                <span style={{ fontSize: 12, color: "#7f8c8d" }}>
-                  Configure which public data sources to monitor for intent signals
-                </span>
+                <h3>
+                  Signal Source Configuration
+                  <InfoTooltip text="Configure which public data sources to monitor. Add or remove channels without developer help." />
+                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 12, color: "#7f8c8d" }}>
+                    Configure which public data sources to monitor for intent signals
+                  </span>
+                  {/* S-01: Add Channel button */}
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setShowAddChannel(true)}
+                  >
+                    <Plus size={12} /> Add Channel
+                  </button>
+                </div>
               </div>
+
+              {/* S-01: Add Channel Modal */}
+              {showAddChannel && (
+                <div
+                  style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: "rgba(0,0,0,0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 2000,
+                  }}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) setShowAddChannel(false);
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#fff",
+                      borderRadius: 12,
+                      padding: 28,
+                      width: 420,
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    <h3 style={{ marginTop: 0, marginBottom: 20 }}>Add New Signal Channel</h3>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "#555" }}>
+                        Channel Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newChannelName}
+                        onChange={(e) => setNewChannelName(e.target.value)}
+                        placeholder="e.g., Twitter/X Mentions, G2 Reviews..."
+                        style={{
+                          width: "100%",
+                          padding: "10px 14px",
+                          border: "1px solid #e0e6ed",
+                          borderRadius: 8,
+                          fontSize: 14,
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                        onKeyDown={(e) => e.key === "Enter" && addChannel()}
+                      />
+                    </div>
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "#555" }}>
+                        Channel Type
+                      </label>
+                      <select
+                        value={newChannelType}
+                        onChange={(e) => setNewChannelType(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "10px 14px",
+                          border: "1px solid #e0e6ed",
+                          borderRadius: 8,
+                          fontSize: 14,
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <option value="custom">Custom Source</option>
+                        <option value="social">Social Media</option>
+                        <option value="review">Review Platform</option>
+                        <option value="news">News / RSS</option>
+                        <option value="forum">Forum / Community</option>
+                      </select>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                      <button
+                        className="btn btn-outline"
+                        onClick={() => {
+                          setShowAddChannel(false);
+                          setNewChannelName("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button className="btn btn-primary" onClick={addChannel}>
+                        <Plus size={14} /> Add Channel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="card-body" style={{ padding: 0 }}>
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th style={{ width: 30 }}></th>
                       <th>Source</th>
                       <th>Status</th>
                       <th>Items Monitored</th>
@@ -624,66 +958,132 @@ const SignalMonitor = () => {
                   </thead>
                   <tbody>
                     {sources.map((src) => (
-                      <tr key={src.id}>
-                        <td style={{ fontWeight: 600 }}>{src.source}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              src.status === "active"
-                                ? "green"
-                                : src.status === "paused"
-                                ? "orange"
-                                : "red"
-                            }`}
-                          >
-                            {src.status === "active"
-                              ? "Active"
-                              : src.status === "paused"
-                              ? "Paused"
-                              : "Disabled"}
-                          </span>
-                        </td>
-                        <td>{src.monitored}</td>
-                        <td style={{ fontWeight: 600 }}>{src.signals}</td>
-                        <td style={{ fontSize: 13, color: "#7f8c8d" }}>
-                          {src.lastCheck}
-                        </td>
-                        <td>
-                          {src.status !== "disabled" ? (
+                      <React.Fragment key={src.id}>
+                        <tr>
+                          {/* S-03: Expand/collapse toggle */}
+                          <td>
                             <button
-                              className={`btn btn-sm ${
-                                src.status === "active"
-                                  ? "btn-outline"
-                                  : "btn-success"
-                              }`}
-                              onClick={() => {
-                                toggleSource(src.id);
-                                showToast(
-                                  `${src.source} ${
-                                    src.status === "active"
-                                      ? "paused"
-                                      : "activated"
-                                  }`
-                                );
-                              }}
+                              className="btn btn-sm btn-outline"
+                              style={{ padding: "2px 4px", border: "none", background: "transparent" }}
+                              onClick={() =>
+                                setExpandedSource(
+                                  expandedSource === src.id ? null : src.id
+                                )
+                              }
                             >
-                              {src.status === "active" ? (
-                                <>
-                                  <Pause size={12} /> Pause
-                                </>
+                              {expandedSource === src.id ? (
+                                <ChevronUp size={14} />
                               ) : (
-                                <>
-                                  <Play size={12} /> Activate
-                                </>
+                                <ChevronDown size={14} />
                               )}
                             </button>
-                          ) : (
-                            <span style={{ fontSize: 12, color: "#e74c3c" }}>
-                              GDPR Restricted
-                            </span>
-                          )}
-                        </td>
-                      </tr>
+                          </td>
+                          <td style={{ fontWeight: 600 }}>
+                            {src.source}
+                            {/* S-04: Info tooltip per source */}
+                            <SourceInfoTooltip source={src.source} />
+                          </td>
+                          {/* S-02: Updated status badges */}
+                          <td>{getSourceStatusBadge(src.status)}</td>
+                          <td>{src.monitored}</td>
+                          <td style={{ fontWeight: 600 }}>{src.signals}</td>
+                          <td style={{ fontSize: 13, color: "#7f8c8d" }}>
+                            {src.lastCheck}
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              {src.status !== "disabled" ? (
+                                <>
+                                  <button
+                                    className={`btn btn-sm ${
+                                      src.status === "active"
+                                        ? "btn-outline"
+                                        : "btn-success"
+                                    }`}
+                                    onClick={() => {
+                                      toggleSource(src.id);
+                                      showToast(
+                                        `${src.source} ${
+                                          src.status === "active"
+                                            ? "paused"
+                                            : "activated"
+                                        }`
+                                      );
+                                    }}
+                                  >
+                                    {src.status === "active" ? (
+                                      <>
+                                        <Pause size={12} /> Pause
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play size={12} /> Activate
+                                      </>
+                                    )}
+                                  </button>
+                                  {/* S-01: Remove button for non-disabled sources */}
+                                  <button
+                                    className="btn btn-sm btn-outline"
+                                    style={{ color: "#e74c3c", borderColor: "#e74c3c" }}
+                                    onClick={() => removeSource(src.id)}
+                                    title="Remove this channel"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </>
+                              ) : (
+                                <span style={{ fontSize: 12, color: "#e74c3c" }}>
+                                  GDPR Restricted
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        {/* S-03: Expanded activity checklist */}
+                        {expandedSource === src.id && (
+                          <tr>
+                            <td colSpan={7} style={{ background: "#f8fafc", padding: "12px 24px 16px 48px" }}>
+                              <strong style={{ fontSize: 12, color: "#7f8c8d", textTransform: "uppercase", display: "block", marginBottom: 10 }}>
+                                Monitored Activities
+                              </strong>
+                              {(sourceActivities[src.source] || []).length > 0 ? (
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                                  {(sourceActivities[src.source] || []).map((activity) => (
+                                    <label
+                                      key={activity.key}
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                        fontSize: 14,
+                                        cursor: src.status === "disabled" ? "not-allowed" : "pointer",
+                                        opacity: src.status === "disabled" ? 0.5 : 1,
+                                        padding: "6px 12px",
+                                        background: activity.enabled ? "#ebf5fb" : "#f5f5f5",
+                                        borderRadius: 6,
+                                        border: activity.enabled ? "1px solid #aed6f1" : "1px solid #e0e6ed",
+                                      }}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={activity.enabled}
+                                        disabled={src.status === "disabled"}
+                                        onChange={() => toggleActivity(src.source, activity.key)}
+                                        style={{ accentColor: "#2980b9" }}
+                                      />
+                                      {activity.label}
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span style={{ fontSize: 13, color: "#7f8c8d" }}>
+                                  No activities configured for this source.
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -730,7 +1130,7 @@ const SignalMonitor = () => {
           </>
         )}
 
-        {/* ── Tab: Keywords & Hashtags ── */}
+        {/* -- Tab: Keywords & Hashtags -- */}
         {activeTab === "keywords" && (
           <>
             {/* Add Keyword */}
@@ -776,7 +1176,10 @@ const SignalMonitor = () => {
             {/* Keywords Table */}
             <div className="card">
               <div className="card-header">
-                <h3>Monitored Keywords</h3>
+                <h3>
+                  Monitored Keywords
+                  <InfoTooltip text="Keywords and hashtags being tracked across LinkedIn and forums. Add new ones to expand signal coverage." />
+                </h3>
                 <span className="badge blue">
                   {keywords.filter((k) => k.active).length} active /{" "}
                   {keywords.length} total

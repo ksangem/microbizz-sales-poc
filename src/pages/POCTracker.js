@@ -1,13 +1,58 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Target,
   CheckCircle,
   Clock,
   AlertTriangle,
   Calendar,
-  FileText,
+  Info,
 } from "lucide-react";
-import { pocObjectives } from "../data/mockData";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { pocObjectives, weeklyMetrics } from "../data/mockData";
+
+const InfoTooltip = ({ text }) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 8, cursor: "pointer" }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <Info size={16} style={{ color: "#7f8c8d" }} />
+      {visible && (
+        <span
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#2c3e50",
+            color: "#fff",
+            padding: "8px 12px",
+            borderRadius: 6,
+            fontSize: 12,
+            lineHeight: 1.4,
+            width: 260,
+            textAlign: "left",
+            zIndex: 1000,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            whiteSpace: "normal",
+          }}
+        >
+          {text}
+        </span>
+      )}
+    </span>
+  );
+};
 
 const POCTracker = () => {
   const getStatusIcon = (status) => {
@@ -36,89 +81,12 @@ const POCTracker = () => {
     }
   };
 
-  const risks = [
-    {
-      risk: "LinkedIn API restrictions limit automated signal collection",
-      severity: "High",
-      likelihood: "High",
-      mitigation:
-        "Use only public hashtag and company page monitoring; supplement with ZoomInfo intent data",
-    },
-    {
-      risk: "GDPR non-compliance if personal data collected without consent",
-      severity: "High",
-      likelihood: "Medium",
-      mitigation:
-        "Restrict to public signals and HubSpot's consent-based records; legal review before go-live",
-    },
-    {
-      risk: "Signal quality is low — noise exceeds useful leads",
-      severity: "Medium",
-      likelihood: "Medium",
-      mitigation:
-        "Start with narrow keyword set; iterate based on sales team feedback in Phase 3",
-    },
-    {
-      risk: "Third-party enrichment vendor costs exceed POC budget",
-      severity: "Medium",
-      likelihood: "Low",
-      mitigation:
-        "Negotiate trial licence for POC period; include in commercial proposal",
-    },
-    {
-      risk: "Low sales team adoption during POC",
-      severity: "Medium",
-      likelihood: "Low",
-      mitigation:
-        "Keep UX in HubSpot (no new tool); weekly check-ins with Robin",
-    },
-  ];
-
-  const actionItems = [
-    {
-      action: "Robin reviews charter and provides feedback",
-      owner: "Robin Montens",
-      deadline: "Apr 24, 2026",
-      status: "Pending",
-    },
-    {
-      action: "Nalashaa revises charter based on feedback",
-      owner: "Amit / Nalashaa",
-      deadline: "Apr 28, 2026",
-      status: "Pending",
-    },
-    {
-      action: "Robin presents to shareholder meeting",
-      owner: "Robin Montens",
-      deadline: "~May 12, 2026",
-      status: "Scheduled",
-    },
-    {
-      action: "Nalashaa issues commercial proposal",
-      owner: "Amit",
-      deadline: "Parallel",
-      status: "In Progress",
-    },
-    {
-      action: "Align on target account list and ICP",
-      owner: "Robin + Nalashaa",
-      deadline: "Week 1 of POC",
-      status: "Not Started",
-    },
-    {
-      action: "Evaluate enrichment data vendor",
-      owner: "Nalashaa + MicroBizz",
-      deadline: "Week 1-2 of POC",
-      status: "Not Started",
-    },
-  ];
-
   return (
     <>
       <div className="top-bar">
         <div className="top-bar-left">
           <h1>POC Tracker</h1>
-          <p>Objectives, risks, and action items for the 10-12 week POC</p>
+          <p>ROI Demonstration — KPI Progress vs Targets</p>
         </div>
         <div className="top-bar-right">
           <span className="poc-badge">POC Week 4</span>
@@ -174,7 +142,10 @@ const POCTracker = () => {
         {/* Objectives */}
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header">
-            <h3>POC Objectives</h3>
+            <h3>
+              POC Objectives
+              <InfoTooltip text="Key objectives for the 10-week POC with progress tracking against agreed targets." />
+            </h3>
             <span className="badge blue">4 Objectives</span>
           </div>
           <div className="card-body">
@@ -221,100 +192,36 @@ const POCTracker = () => {
           </div>
         </div>
 
-        <div className="grid-2">
-          {/* Risks */}
-          <div className="card">
-            <div className="card-header">
-              <h3>Risks & Challenges</h3>
-              <AlertTriangle size={16} style={{ color: "#f39c12" }} />
-            </div>
-            <div className="card-body" style={{ padding: 0 }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Risk</th>
-                    <th>Severity</th>
-                    <th>Mitigation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {risks.map((risk, i) => (
-                    <tr key={i}>
-                      <td style={{ fontSize: 13 }}>{risk.risk}</td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            risk.severity === "High"
-                              ? "red"
-                              : risk.severity === "Medium"
-                              ? "orange"
-                              : "green"
-                          }`}
-                        >
-                          {risk.severity}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: 12, color: "#555" }}>
-                        {risk.mitigation}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* Weekly KPI Trends */}
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header">
+            <h3>
+              Weekly KPI Trends
+              <InfoTooltip text="Week-over-week progression of key performance indicators across the POC timeline." />
+            </h3>
           </div>
-
-          {/* Action Items */}
-          <div className="card">
-            <div className="card-header">
-              <h3>Action Items</h3>
-              <FileText size={16} style={{ color: "#2980b9" }} />
-            </div>
-            <div className="card-body" style={{ padding: 0 }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Action</th>
-                    <th>Owner</th>
-                    <th>Deadline</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {actionItems.map((item, i) => (
-                    <tr key={i}>
-                      <td style={{ fontSize: 13 }}>{item.action}</td>
-                      <td style={{ fontSize: 13 }}>{item.owner}</td>
-                      <td style={{ fontSize: 12, color: "#7f8c8d" }}>
-                        {item.deadline}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            item.status === "In Progress"
-                              ? "blue"
-                              : item.status === "Scheduled"
-                              ? "green"
-                              : item.status === "Pending"
-                              ? "orange"
-                              : "gray"
-                          }`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="card-body">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={weeklyMetrics} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="week" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="signals" name="Signals / Week" fill="#2980b9" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="enriched" name="Enrichment Rate" fill="#27ae60" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="outreach" name="Outreach Sent" fill="#8e44ad" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
         {/* Success Metrics */}
         <div className="card" style={{ marginTop: 24 }}>
           <div className="card-header">
-            <h3>Success Metrics (End of Week 12)</h3>
+            <h3>
+              Success Metrics (End of Week 12)
+              <InfoTooltip text="End-of-POC success criteria. Green = target met, Orange = in progress, Red = needs attention." />
+            </h3>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             <table className="data-table">
@@ -330,7 +237,7 @@ const POCTracker = () => {
                 <tr>
                   <td>Relevant signal events per week</td>
                   <td>
-                    <span className="badge green">≥20/week by W4</span>
+                    <span className="badge green">&ge;20/week by W4</span>
                   </td>
                   <td style={{ fontWeight: 600 }}>28/week</td>
                   <td style={{ fontSize: 13, color: "#7f8c8d" }}>
@@ -340,7 +247,7 @@ const POCTracker = () => {
                 <tr>
                   <td>Accounts with named decision-maker</td>
                   <td>
-                    <span className="badge green">≥80%</span>
+                    <span className="badge green">&ge;80%</span>
                   </td>
                   <td style={{ fontWeight: 600 }}>87.5%</td>
                   <td style={{ fontSize: 13, color: "#7f8c8d" }}>
@@ -350,7 +257,7 @@ const POCTracker = () => {
                 <tr>
                   <td>Sales team signal quality rating</td>
                   <td>
-                    <span className="badge blue">≥4/5 avg</span>
+                    <span className="badge blue">&ge;4/5 avg</span>
                   </td>
                   <td style={{ fontWeight: 600 }}>Pending</td>
                   <td style={{ fontSize: 13, color: "#7f8c8d" }}>
@@ -360,7 +267,7 @@ const POCTracker = () => {
                 <tr>
                   <td>AI-suggested context used in outreach</td>
                   <td>
-                    <span className="badge blue">≥50%</span>
+                    <span className="badge blue">&ge;50%</span>
                   </td>
                   <td style={{ fontWeight: 600 }}>60% (3/5)</td>
                   <td style={{ fontSize: 13, color: "#7f8c8d" }}>
@@ -370,7 +277,7 @@ const POCTracker = () => {
                 <tr>
                   <td>Meetings booked from POC leads</td>
                   <td>
-                    <span className="badge orange">≥1</span>
+                    <span className="badge orange">&ge;1</span>
                   </td>
                   <td style={{ fontWeight: 600 }}>0</td>
                   <td style={{ fontSize: 13, color: "#7f8c8d" }}>
@@ -380,7 +287,7 @@ const POCTracker = () => {
                 <tr>
                   <td>Robin's overall POC satisfaction</td>
                   <td>
-                    <span className="badge orange">≥8/10</span>
+                    <span className="badge orange">&ge;8/10</span>
                   </td>
                   <td style={{ fontWeight: 600 }}>TBD</td>
                   <td style={{ fontSize: 13, color: "#7f8c8d" }}>
@@ -391,6 +298,19 @@ const POCTracker = () => {
             </table>
           </div>
         </div>
+
+        {/* P-03 Note */}
+        <p
+          style={{
+            marginTop: 24,
+            fontSize: 13,
+            color: "#7f8c8d",
+            fontStyle: "italic",
+            textAlign: "center",
+          }}
+        >
+          Assumptions, risks, and prerequisites have been documented in the external sales presentation materials (MicroBizz_NalashaaProposal_v1.0.pptx, Slide 12).
+        </p>
       </div>
     </>
   );

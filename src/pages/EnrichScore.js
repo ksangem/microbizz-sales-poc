@@ -13,6 +13,10 @@ import {
   ArrowRight,
   AlertCircle,
   Sliders,
+  Info,
+  Send,
+  Settings,
+  Zap,
 } from "lucide-react";
 import {
   BarChart,
@@ -30,11 +34,57 @@ import {
 } from "recharts";
 import { enrichmentPipeline, scoringModel } from "../data/mockData";
 
+/* ── Helper: Info Tooltip ── */
+const InfoTooltip = ({ text }) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", display: "inline-block", marginLeft: 6, cursor: "pointer" }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <Info size={15} style={{ color: "#7f8c8d", verticalAlign: "middle" }} />
+      {visible && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#2c3e50",
+            color: "#fff",
+            padding: "10px 14px",
+            borderRadius: 8,
+            fontSize: 12,
+            lineHeight: 1.5,
+            width: 280,
+            zIndex: 1000,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            pointerEvents: "none",
+          }}
+        >
+          {text}
+        </div>
+      )}
+    </span>
+  );
+};
+
+/* ── Helper: get recommended action label for SC-02 ── */
+const getScoreRecommendation = (score) => {
+  if (score >= 80)
+    return { text: "High intent \u2014 trigger outreach now", color: "#27ae60", bg: "#eafaf1" };
+  if (score >= 50)
+    return { text: "Monitor \u2014 re-enrich in 7 days", color: "#e67e22", bg: "#fef5e7" };
+  return { text: "Low priority", color: "#7f8c8d", bg: "#f2f3f4" };
+};
+
 const EnrichScore = () => {
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState("pipeline");
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedLead, setSelectedLead] = useState(enrichmentPipeline[0]);
+  const [showEnrichBanner, setShowEnrichBanner] = useState(true);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -50,6 +100,10 @@ const EnrichScore = () => {
   const phoneVerified = enrichmentPipeline.filter(
     (e) => e.phoneVerified
   ).length;
+
+  const highScoreLeads = enrichmentPipeline.filter(
+    (e) => e.status === "complete" && e.overallScore >= 80
+  );
 
   const scoringBarData = selectedLead
     ? [
@@ -85,13 +139,32 @@ const EnrichScore = () => {
             <span className="sync-dot"></span>
             ZoomInfo Connected
           </div>
+          {/* E-01: Three primary action buttons */}
           <button
             className="btn btn-primary"
             onClick={() =>
               showToast("Running enrichment on all pending accounts...")
             }
           >
-            <RefreshCw size={14} /> Run Enrichment
+            <Database size={14} /> Run Enrichment
+          </button>
+          <button
+            className="btn btn-primary"
+            style={{ background: "#8e44ad" }}
+            onClick={() =>
+              showToast("Re-enriching all accounts with latest ZoomInfo data...")
+            }
+          >
+            <RefreshCw size={14} /> Re-enrich
+          </button>
+          <button
+            className="btn btn-primary"
+            style={{ background: "#27ae60" }}
+            onClick={() =>
+              showToast("Generating AI outreach messages for top leads...")
+            }
+          >
+            <Send size={14} /> Generate Outreach
           </button>
           <span className="poc-badge">POC Week 4</span>
           <div className="user-avatar">RM</div>
@@ -142,12 +215,27 @@ const EnrichScore = () => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs with G-01 info tooltips */}
         <div className="tab-nav">
           {[
-            { key: "pipeline", label: "Enrichment Pipeline" },
-            { key: "scoring", label: "Scoring Model" },
-            { key: "icp", label: "ICP Configuration" },
+            {
+              key: "pipeline",
+              label: "Enrichment Pipeline",
+              tooltip:
+                "ZoomInfo enrichment data for each detected account. Run enrichment to fill in contact details, firmographics, and verification status.",
+            },
+            {
+              key: "scoring",
+              label: "Scoring Model",
+              tooltip:
+                "Lead scoring weights determine how leads are ranked. Configure once \u2014 scores update automatically as new signals are detected.",
+            },
+            {
+              key: "icp",
+              label: "ICP Configuration",
+              tooltip:
+                "Your Ideal Customer Profile criteria. Leads are scored against these parameters to determine fit.",
+            },
           ].map((tab) => (
             <div
               key={tab.key}
@@ -155,6 +243,7 @@ const EnrichScore = () => {
               onClick={() => setActiveTab(tab.key)}
             >
               {tab.label}
+              <InfoTooltip text={tab.tooltip} />
             </div>
           ))}
         </div>
@@ -163,12 +252,66 @@ const EnrichScore = () => {
         {activeTab === "pipeline" && (
           <div className="card">
             <div className="card-header">
-              <h3>Account Enrichment Pipeline</h3>
+              <h3>
+                Account Enrichment Pipeline
+                {/* E-04: Info button */}
+                <InfoTooltip
+                  text="Enrichment pulls contact details, firmographic data, email/phone verification, and LinkedIn profiles from ZoomInfo. Re-run enrichment periodically to capture updated data or when new accounts are added."
+                />
+              </h3>
               <span className="badge green">
                 {completedCount}/{enrichmentPipeline.length} Complete — Target:
                 ≥80%
               </span>
             </div>
+
+            {/* E-03: Guided next-action banner */}
+            {showEnrichBanner && completedCount > 0 && highScoreLeads.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "linear-gradient(135deg, #eafaf1 0%, #d5f5e3 100%)",
+                  border: "1px solid #27ae60",
+                  borderRadius: 8,
+                  padding: "12px 20px",
+                  margin: "0 16px 0 16px",
+                  marginTop: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Zap size={18} style={{ color: "#27ae60" }} />
+                  <span style={{ fontSize: 14, color: "#2c3e50" }}>
+                    <strong>{completedCount} leads enriched.</strong>{" "}
+                    {highScoreLeads.length} high-score lead{highScoreLeads.length !== 1 ? "s" : ""} ready for outreach.{" "}
+                    <ArrowRight size={14} style={{ verticalAlign: "middle" }} />{" "}
+                    Trigger outreach for top leads?
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button
+                    className="btn btn-success"
+                    style={{ fontSize: 13 }}
+                    onClick={() =>
+                      showToast(
+                        `Generating outreach for ${highScoreLeads.length} high-score leads...`
+                      )
+                    }
+                  >
+                    <Send size={14} /> Trigger Outreach
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    style={{ fontSize: 12, padding: "4px 10px" }}
+                    onClick={() => setShowEnrichBanner(false)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="card-body" style={{ padding: 0 }}>
               <table className="data-table">
                 <thead>
@@ -183,6 +326,8 @@ const EnrichScore = () => {
                     <th>Intent</th>
                     <th>Overall</th>
                     <th>Status</th>
+                    {/* E-02: Last Enriched column */}
+                    <th>Last Enriched</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -312,16 +457,66 @@ const EnrichScore = () => {
                             </span>
                           </div>
                         </td>
+                        {/* E-02: Enhanced status with color coding */}
                         <td>
-                          <span
-                            className={`badge ${
-                              item.status === "complete" ? "green" : "orange"
-                            }`}
-                          >
-                            {item.status === "complete"
-                              ? "Complete"
-                              : "Pending"}
-                          </span>
+                          {item.status === "complete" ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                background: "#eafaf1",
+                                color: "#27ae60",
+                                padding: "4px 10px",
+                                borderRadius: 12,
+                                fontSize: 12,
+                                fontWeight: 600,
+                              }}
+                            >
+                              <CheckCircle size={12} /> Enriched
+                            </span>
+                          ) : item.status === "failed" ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                background: "#fdedec",
+                                color: "#e74c3c",
+                                padding: "4px 10px",
+                                borderRadius: 12,
+                                fontSize: 12,
+                                fontWeight: 600,
+                              }}
+                            >
+                              <AlertCircle size={12} /> Failed
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                background: "#fef5e7",
+                                color: "#e67e22",
+                                padding: "4px 10px",
+                                borderRadius: 12,
+                                fontSize: 12,
+                                fontWeight: 600,
+                              }}
+                            >
+                              <RefreshCw size={12} /> Pending
+                            </span>
+                          )}
+                        </td>
+                        {/* E-02: Last enriched timestamp */}
+                        <td style={{ fontSize: 12, color: "#7f8c8d" }}>
+                          {item.enrichedAt
+                            ? new Date(item.enrichedAt).toLocaleDateString(
+                                "en-US",
+                                { month: "short", day: "numeric", year: "numeric" }
+                              )
+                            : "\u2014"}
                         </td>
                         <td>
                           <button
@@ -344,7 +539,7 @@ const EnrichScore = () => {
                       {expandedRow === item.id && (
                         <tr>
                           <td
-                            colSpan={11}
+                            colSpan={12}
                             style={{ background: "#f8fafc", padding: 20 }}
                           >
                             <div style={{ display: "flex", gap: 32 }}>
@@ -536,6 +731,26 @@ const EnrichScore = () => {
         {/* ── Tab: Scoring Model ── */}
         {activeTab === "scoring" && (
           <>
+            {/* SC-01: Persistent scoring callout banner */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                background: "linear-gradient(135deg, #ebf5fb 0%, #d6eaf8 100%)",
+                border: "1px solid #3498db",
+                borderRadius: 8,
+                padding: "12px 20px",
+                marginBottom: 16,
+              }}
+            >
+              <Info size={18} style={{ color: "#2980b9", flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: "#2c3e50" }}>
+                Scoring model is configured once and applied automatically to all
+                leads. No manual scoring required per lead.
+              </span>
+            </div>
+
             <div className="grid-2">
               {/* Score Breakdown for Selected Lead */}
               <div className="card">
@@ -615,7 +830,9 @@ const EnrichScore = () => {
                           color:
                             selectedLead.overallScore >= 80
                               ? "#27ae60"
-                              : "#f39c12",
+                              : selectedLead.overallScore >= 50
+                              ? "#f39c12"
+                              : "#7f8c8d",
                         }}
                       >
                         {selectedLead.overallScore}
@@ -624,6 +841,27 @@ const EnrichScore = () => {
                         {" "}
                         / 100
                       </span>
+                      {/* SC-02: Recommended next action label */}
+                      <div style={{ marginTop: 10 }}>
+                        {(() => {
+                          const rec = getScoreRecommendation(selectedLead.overallScore);
+                          return (
+                            <span
+                              style={{
+                                display: "inline-block",
+                                background: rec.bg,
+                                color: rec.color,
+                                padding: "6px 14px",
+                                borderRadius: 16,
+                                fontSize: 13,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {rec.text}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -689,6 +927,15 @@ const EnrichScore = () => {
                   />
                   Lead Scoring Model — Weight Configuration
                 </h3>
+                {/* SC-03: Configure Scoring Model button */}
+                <button
+                  className="btn btn-primary"
+                  onClick={() =>
+                    showToast("Opening scoring model configuration...")
+                  }
+                >
+                  <Settings size={14} /> Configure Scoring Model
+                </button>
               </div>
               <div className="card-body" style={{ padding: 0 }}>
                 <table className="data-table">
